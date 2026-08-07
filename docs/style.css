@@ -128,6 +128,16 @@ body {
 }
 .select:focus { border-color: var(--accent); }
 
+/* Slot selector styling */
+#slot-select {
+  min-width: 200px;
+}
+
+#btn-delete-slot {
+  padding: 6px 10px;
+  font-size: 0.85rem;
+}
+
 .hint { font-size: 0.8rem; color: var(--text-dim); }
 
 /* ─── Main Area ─────────────────────────────────────────────────────── */

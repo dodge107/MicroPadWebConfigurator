@@ -5,7 +5,7 @@
  * select an action → it's immediately saved. No "Assign" button needed.
  */
 
-import { KEYBOARD_MODELS, createEmptyConfig, parseYAML, toYAML } from './config.js';
+import { KEYBOARD_MODELS, createEmptyConfig, parseYAML, toYAML, saveToLocalStorage, loadFromLocalStorage, clearLocalStorage, getSavedSlots, deleteSlot } from './config.js';
 import { parseAction, MEDIA_CODES } from './keys.js';
 import { logger } from './logger.js';
 
@@ -18,17 +18,31 @@ const state = {
   currentModel: 'ch57x-2',
   config: null,
   selectedKey: null, // { type: 'button'|'knob', index, knobAction? }
+  currentSlot: 'default', // Current localStorage slot name
 };
 
 // ─── Init ────────────────────────────────────────────────────────────
 function init() {
-  state.config = createEmptyConfig(state.currentModel);
+  // Try to load saved configuration from localStorage (last used slot)
+  const saved = loadFromLocalStorage();
+  if (saved) {
+    state.currentModel = saved.model;
+    state.config = saved.config;
+    state.currentSlot = saved.slotName || 'default';
+    $('#model-select').value = state.currentModel;
+    logger.info('APP', `Restored configuration from browser storage slot: ${state.currentSlot}`);
+  } else {
+    state.config = createEmptyConfig(state.currentModel);
+  }
+
   setupToolbar();
   setupKeyboard();
   setupPicker();
   setupImportExport();
+  setupLocalStorageButtons();
   renderKeyboard();
   updateKeyCountHint();
+  updateSlotSelector();
   logger.info('APP', 'MicroPad Configurator ready');
 }
 
@@ -40,6 +54,7 @@ function setupToolbar() {
     state.selectedKey = null;
     renderKeyboard();
     updateKeyCountHint();
+    autoSave();
     showToast(`Switched to ${KEYBOARD_MODELS[state.currentModel].name}`, 'info');
   });
 }
@@ -143,6 +158,12 @@ function renderKeyboard() {
 
 function formatActionLabel(action) {
   if (!action) return '';
+  
+  // Handle macros (comma-separated actions)
+  if (action.includes(',')) {
+    return action.split(',').map(part => formatActionLabel(part.trim())).join(', ');
+  }
+  
   // Make it readable: ctrl-c → Ctrl+C, volumeup → Vol Up
   if (MEDIA_CODES[action.toLowerCase()]) {
     const mediaLabels = {
@@ -153,6 +174,13 @@ function formatActionLabel(action) {
     };
     return mediaLabels[action.toLowerCase()] || action;
   }
+  
+  // Handle mouse actions
+  if (action.startsWith('click') || action.startsWith('move') || 
+      action.startsWith('drag') || action.startsWith('wheel')) {
+    return action;
+  }
+  
   // Uppercase modifier combos: ctrl-c → Ctrl+C
   return action.replace(/^(ctrl|shift|alt|win)(-.+)?$/i, (m, mod, rest) => {
     const parts = action.split('-');
@@ -331,6 +359,7 @@ function assignAndClose(actionStr) {
 
   renderKeyboard();
   updateKeyCountHint();
+  autoSave();
   closePicker();
   showToast(`Assigned: ${actionStr}`, 'success');
 }
@@ -352,6 +381,7 @@ function clearCurrentKey() {
 
   renderKeyboard();
   updateKeyCountHint();
+  autoSave();
   showToast('Action cleared', 'info');
 }
 
@@ -387,6 +417,7 @@ function setupImportExport() {
         state.selectedKey = null;
         renderKeyboard();
         updateKeyCountHint();
+        autoSave();
         showToast('Configuration imported', 'success');
       } catch (err) {
         showToast(`Import failed: ${err.message}`, 'error');
@@ -395,6 +426,145 @@ function setupImportExport() {
     reader.readAsText(file);
     e.target.value = '';
   });
+}
+
+// ─── Local Storage ───────────────────────────────────────────────────
+function autoSave() {
+  saveToLocalStorage(state.currentModel, state.config, state.currentSlot);
+}
+
+function updateSlotSelector() {
+  const slotSelect = $('#slot-select');
+  if (!slotSelect) return;
+  
+  const slots = getSavedSlots();
+  
+  // Clear existing options
+  slotSelect.innerHTML = '';
+  
+  // Add options for each saved slot
+  if (slots.length === 0) {
+    const option = document.createElement('option');
+    option.value = 'default';
+    option.textContent = 'Default (unsaved)';
+    slotSelect.appendChild(option);
+  } else {
+    slots.forEach(slot => {
+      const option = document.createElement('option');
+      option.value = slot.name;
+      const modelName = KEYBOARD_MODELS[slot.model]?.name || slot.model;
+      const date = new Date(slot.timestamp).toLocaleDateString();
+      option.textContent = `${slot.name} (${modelName}) - ${date}`;
+      if (slot.isLastUsed) option.selected = true;
+      slotSelect.appendChild(option);
+    });
+  }
+  
+  // Add "New Slot" option
+  const newOption = document.createElement('option');
+  newOption.value = '__new__';
+  newOption.textContent = '+ Create New Slot...';
+  slotSelect.appendChild(newOption);
+}
+
+function setupLocalStorageButtons() {
+  const btnSave = $('#btn-save');
+  const btnLoad = $('#btn-load');
+  const btnClear = $('#btn-clear-storage');
+  const slotSelect = $('#slot-select');
+  const btnDeleteSlot = $('#btn-delete-slot');
+
+  // Slot selector change handler
+  if (slotSelect) {
+    slotSelect.addEventListener('change', (e) => {
+      if (e.target.value === '__new__') {
+        // Prompt for new slot name
+        const slotName = prompt('Enter a name for this configuration slot:');
+        if (slotName && slotName.trim()) {
+          state.currentSlot = slotName.trim().toLowerCase().replace(/[^a-z0-9-_]/g, '-');
+          autoSave();
+          updateSlotSelector();
+          showToast(`Created new slot: ${state.currentSlot}`, 'success');
+        } else {
+          // Reset to previous selection
+          updateSlotSelector();
+        }
+      } else {
+        // Load selected slot
+        state.currentSlot = e.target.value;
+        const saved = loadFromLocalStorage(state.currentSlot);
+        if (saved) {
+          state.currentModel = saved.model;
+          state.config = saved.config;
+          $('#model-select').value = state.currentModel;
+          state.selectedKey = null;
+          renderKeyboard();
+          updateKeyCountHint();
+          showToast(`Loaded slot: ${state.currentSlot}`, 'success');
+        }
+      }
+    });
+  }
+
+  // Delete slot button
+  if (btnDeleteSlot) {
+    btnDeleteSlot.addEventListener('click', () => {
+      if (state.currentSlot === 'default') {
+        showToast('Cannot delete the default slot', 'error');
+        return;
+      }
+      if (confirm(`Delete slot "${state.currentSlot}"? This cannot be undone.`)) {
+        deleteSlot(state.currentSlot);
+        state.currentSlot = 'default';
+        state.config = createEmptyConfig(state.currentModel);
+        state.selectedKey = null;
+        renderKeyboard();
+        updateKeyCountHint();
+        updateSlotSelector();
+        showToast('Slot deleted', 'info');
+      }
+    });
+  }
+
+  if (btnSave) {
+    btnSave.addEventListener('click', () => {
+      autoSave();
+      updateSlotSelector();
+      showToast(`Saved to slot: ${state.currentSlot}`, 'success');
+    });
+  }
+
+  if (btnLoad) {
+    btnLoad.addEventListener('click', () => {
+      const saved = loadFromLocalStorage(state.currentSlot);
+      if (saved) {
+        state.currentModel = saved.model;
+        state.config = saved.config;
+        $('#model-select').value = state.currentModel;
+        state.selectedKey = null;
+        renderKeyboard();
+        updateKeyCountHint();
+        showToast(`Loaded from slot: ${state.currentSlot}`, 'success');
+      } else {
+        showToast('No saved configuration found in this slot', 'info');
+      }
+    });
+  }
+
+  if (btnClear) {
+    btnClear.addEventListener('click', () => {
+      if (confirm('Clear ALL saved configurations from browser storage? This cannot be undone.')) {
+        clearLocalStorage();
+        state.currentSlot = 'default';
+        state.config = createEmptyConfig(state.currentModel);
+        state.selectedKey = null;
+        renderKeyboard();
+        updateKeyCountHint();
+        updateSlotSelector();
+        showToast('All browser storage cleared', 'info');
+      }
+    });
+  }
 }
 
 // ─── Toast Notifications ─────────────────────────────────────────────

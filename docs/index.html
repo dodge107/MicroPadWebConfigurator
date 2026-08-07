@@ -15,6 +15,9 @@
         <span class="subtitle">Visual configuration designer for CH57x macro keyboards</span>
       </div>
       <div class="header-right">
+        <button id="btn-save" class="btn btn-ghost" title="Save to browser storage">💾 Save</button>
+        <button id="btn-load" class="btn btn-ghost" title="Load from browser storage">📂 Load</button>
+        <button id="btn-clear-storage" class="btn btn-ghost" title="Clear browser storage">🗑️ Clear</button>
         <button id="btn-import" class="btn btn-ghost">📂 Import</button>
         <button id="btn-export" class="btn btn-primary">📥 Export YAML</button>
         <input type="file" id="file-import" accept=".yaml,.yml" style="display:none;">
@@ -33,6 +36,14 @@
           <option value="ch57x-5">4×1 no knobs</option>
           <option value="ch57x-4x4">4×4 with 2 knobs</option>
         </select>
+      </div>
+      <div class="toolbar-group">
+        <label>Slot:</label>
+        <select id="slot-select" class="select">
+          <option value="default">Default (unsaved)</option>
+          <option value="__new__">+ Create New Slot...</option>
+        </select>
+        <button id="btn-delete-slot" class="btn btn-ghost btn-sm" title="Delete current slot">🗑️</button>
       </div>
       <div class="toolbar-group toolbar-spacer"></div>
       <div class="toolbar-group">
@@ -75,7 +86,7 @@
           <span class="mod-hint">Hold modifiers + click a key below</span>
         </div>
         <div class="keyboard-layout">
-          <!-- Function row -->
+          <!-- Function row 1: F1-F12 -->
           <div class="kb-row kb-row-fn">
             <button class="kb-key kb-key-sm" data-key="escape">Esc</button>
             <span class="kb-spacer"></span>
@@ -93,6 +104,23 @@
             <button class="kb-key kb-key-sm" data-key="f10">F10</button>
             <button class="kb-key kb-key-sm" data-key="f11">F11</button>
             <button class="kb-key kb-key-sm" data-key="f12">F12</button>
+          </div>
+          <!-- Function row 2: F13-F24 -->
+          <div class="kb-row kb-row-fn">
+            <button class="kb-key kb-key-sm" data-key="f13">F13</button>
+            <button class="kb-key kb-key-sm" data-key="f14">F14</button>
+            <button class="kb-key kb-key-sm" data-key="f15">F15</button>
+            <button class="kb-key kb-key-sm" data-key="f16">F16</button>
+            <span class="kb-spacer-sm"></span>
+            <button class="kb-key kb-key-sm" data-key="f17">F17</button>
+            <button class="kb-key kb-key-sm" data-key="f18">F18</button>
+            <button class="kb-key kb-key-sm" data-key="f19">F19</button>
+            <button class="kb-key kb-key-sm" data-key="f20">F20</button>
+            <span class="kb-spacer-sm"></span>
+            <button class="kb-key kb-key-sm" data-key="f21">F21</button>
+            <button class="kb-key kb-key-sm" data-key="f22">F22</button>
+            <button class="kb-key kb-key-sm" data-key="f23">F23</button>
+            <button class="kb-key kb-key-sm" data-key="f24">F24</button>
           </div>
           <!-- Number row -->
           <div class="kb-row">
@@ -159,13 +187,30 @@
             <button class="kb-key" data-key="/">/</button>
             <button class="kb-key kb-key-xl" data-key="shift">Shift</button>
           </div>
-          <!-- Space row -->
+          <!-- Space row with modifiers -->
           <div class="kb-row">
             <button class="kb-key kb-key-md" data-key="ctrl">Ctrl</button>
+            <button class="kb-key kb-key-md" data-key="shift">Shift</button>
             <button class="kb-key kb-key-md" data-key="alt">Alt</button>
+            <button class="kb-key kb-key-md" data-key="win">Win</button>
             <button class="kb-key kb-key-space" data-key="space">Space</button>
+            <button class="kb-key kb-key-md" data-key="win">Win</button>
             <button class="kb-key kb-key-md" data-key="alt">Alt</button>
+            <button class="kb-key kb-key-md" data-key="shift">Shift</button>
             <button class="kb-key kb-key-md" data-key="ctrl">Ctrl</button>
+          </div>
+          <!-- Right-side modifiers row -->
+          <div class="kb-row">
+            <button class="kb-key kb-key-sm" data-key="rctrl">RCtrl</button>
+            <button class="kb-key kb-key-sm" data-key="rshift">RShift</button>
+            <button class="kb-key kb-key-sm" data-key="ralt">RAlt</button>
+            <button class="kb-key kb-key-sm" data-key="rwin">RWin</button>
+            <span class="kb-spacer"></span>
+            <button class="kb-key kb-key-sm" data-key="application">App</button>
+            <button class="kb-key kb-key-sm" data-key="power">Power</button>
+            <button class="kb-key kb-key-sm" data-key="printscreen">PrtSc</button>
+            <button class="kb-key kb-key-sm" data-key="scrolllock">ScrLk</button>
+            <button class="kb-key kb-key-sm" data-key="pause">Pause</button>
           </div>
           <!-- Navigation cluster -->
           <div class="kb-row kb-row-nav">
@@ -201,6 +246,7 @@
           <button class="media-btn" data-media="brightnessdown">🌅 Bright Down</button>
           <button class="media-btn" data-media="calculator">🧮 Calculator</button>
           <button class="media-btn" data-media="screenlock">🔒 Screen Lock</button>
+          <button class="media-btn" data-media="favorites">⭐ Favorites</button>
         </div>
       </div>
 
@@ -208,10 +254,15 @@
       <div class="picker-panel" id="picker-mouse" style="display:none;">
         <div class="mouse-grid">
           <button class="mouse-btn" data-mouse="click">🖱️ Left Click</button>
-          <button class="mouse-btn" data-mouse="click-right">Right Click</button>
-          <button class="mouse-btn" data-mouse="click-middle">Middle Click</button>
-          <button class="mouse-btn" data-mouse="wheelup">Wheel Up</button>
-          <button class="mouse-btn" data-mouse="wheeldown">Wheel Down</button>
+          <button class="mouse-btn" data-mouse="click(right)">Right Click</button>
+          <button class="mouse-btn" data-mouse="click(middle)">Middle Click</button>
+          <button class="mouse-btn" data-mouse="wheel(1)">Wheel Up</button>
+          <button class="mouse-btn" data-mouse="wheel(-1)">Wheel Down</button>
+          <button class="mouse-btn" data-mouse="move(0,-10)">Move Up</button>
+          <button class="mouse-btn" data-mouse="move(0,10)">Move Down</button>
+          <button class="mouse-btn" data-mouse="move(-10,0)">Move Left</button>
+          <button class="mouse-btn" data-mouse="move(10,0)">Move Right</button>
+          <button class="mouse-btn" data-mouse="drag(left,0,10)">Drag Down</button>
         </div>
         <div class="mouse-custom">
           <label>Custom movement:</label>
@@ -234,7 +285,7 @@
       <div class="picker-panel" id="picker-macro" style="display:none;">
         <div class="macro-panel">
           <label>Enter a sequence of actions (comma-separated):</label>
-          <input type="text" id="pick-macro-input" class="input input-lg" placeholder="ctrl-a,ctrl-c  or  {delay(500)}hello">
+          <input type="text" id="pick-macro-input" class="input input-lg" placeholder="ctrl-a,ctrl-c  or  alt-tab,enter">
           <div class="macro-examples">
             <span class="hint">Examples:</span>
             <button class="macro-example" data-macro="ctrl-c">Copy (Ctrl+C)</button>

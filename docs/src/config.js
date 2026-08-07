@@ -210,3 +210,139 @@ export function toYAML(config) {
   }
   return yaml;
 }
+
+/**
+ * Save configuration to browser localStorage
+ * @param {string} modelId - The keyboard model ID
+ * @param {object} config - The configuration object
+ * @param {string} slotName - Optional slot name (default: 'default')
+ */
+export function saveToLocalStorage(modelId, config, slotName = 'default') {
+  try {
+    // Get existing slots or create new
+    const allSlots = getAllSlots();
+    
+    // Save to specific slot
+    allSlots[slotName] = {
+      model: modelId,
+      config: config,
+      timestamp: Date.now()
+    };
+    
+    // Update last used slot
+    allSlots._lastUsed = slotName;
+    
+    localStorage.setItem('micropad-configs', JSON.stringify(allSlots));
+    logger.info(LOG_CAT, `Configuration saved to localStorage slot: ${slotName}`);
+    return true;
+  } catch (err) {
+    logger.error(LOG_CAT, 'Failed to save to localStorage', err);
+    return false;
+  }
+}
+
+/**
+ * Get all saved slots from localStorage
+ */
+function getAllSlots() {
+  try {
+    const stored = localStorage.getItem('micropad-configs');
+    if (!stored) return { _lastUsed: 'default' };
+    return JSON.parse(stored);
+  } catch (err) {
+    logger.error(LOG_CAT, 'Failed to parse localStorage', err);
+    return { _lastUsed: 'default' };
+  }
+}
+
+/**
+ * Load configuration from browser localStorage
+ * @param {string} slotName - Optional slot name (default: last used or 'default')
+ */
+export function loadFromLocalStorage(slotName = null) {
+  try {
+    const allSlots = getAllSlots();
+    
+    // If no slot specified, use last used or 'default'
+    const slot = slotName || allSlots._lastUsed || 'default';
+    
+    if (!allSlots[slot]) {
+      logger.info(LOG_CAT, `No saved configuration found in slot: ${slot}`);
+      return null;
+    }
+    
+    const data = allSlots[slot];
+    if (!data.model || !data.config) {
+      logger.warn(LOG_CAT, `Invalid data in localStorage slot: ${slot}`);
+      return null;
+    }
+    
+    logger.info(LOG_CAT, `Configuration loaded from localStorage slot: ${slot}`, { 
+      model: data.model, 
+      timestamp: new Date(data.timestamp).toISOString() 
+    });
+    return { ...data, slotName: slot };
+  } catch (err) {
+    logger.error(LOG_CAT, 'Failed to load from localStorage', err);
+    return null;
+  }
+}
+
+/**
+ * Get list of all saved slot names
+ */
+export function getSavedSlots() {
+  try {
+    const allSlots = getAllSlots();
+    const slots = Object.keys(allSlots)
+      .filter(key => !key.startsWith('_'))
+      .map(key => ({
+        name: key,
+        model: allSlots[key].model,
+        timestamp: allSlots[key].timestamp,
+        isLastUsed: key === allSlots._lastUsed
+      }));
+    return slots;
+  } catch (err) {
+    logger.error(LOG_CAT, 'Failed to get saved slots', err);
+    return [];
+  }
+}
+
+/**
+ * Delete a specific slot from localStorage
+ */
+export function deleteSlot(slotName) {
+  try {
+    const allSlots = getAllSlots();
+    delete allSlots[slotName];
+    
+    // If deleted slot was last used, update to another slot or clear
+    if (allSlots._lastUsed === slotName) {
+      const remaining = Object.keys(allSlots).filter(k => !k.startsWith('_'));
+      allSlots._lastUsed = remaining.length > 0 ? remaining[0] : 'default';
+    }
+    
+    localStorage.setItem('micropad-configs', JSON.stringify(allSlots));
+    logger.info(LOG_CAT, `Slot deleted from localStorage: ${slotName}`);
+    return true;
+  } catch (err) {
+    logger.error(LOG_CAT, 'Failed to delete slot', err);
+    return false;
+  }
+}
+
+/**
+ * Clear all configurations from browser localStorage
+ */
+export function clearLocalStorage() {
+  try {
+    localStorage.removeItem('micropad-configs');
+    localStorage.removeItem('micropad-config'); // Clean up old format
+    logger.info(LOG_CAT, 'All configurations cleared from localStorage');
+    return true;
+  } catch (err) {
+    logger.error(LOG_CAT, 'Failed to clear localStorage', err);
+    return false;
+  }
+}

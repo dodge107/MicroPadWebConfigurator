@@ -2,12 +2,11 @@
 # Upload a YAML config to the CH57x micropad
 # Usage: ./upload.sh [config-file.yaml] [--led <layer> <mode>]
 #
-# LED modes (k884x models):
-#   off
-#   backlight white|red|orange|yellow|green|cyan|blue|purple
-#   shock red|orange|yellow|green|cyan|blue|purple
-#   shock2 red|orange|yellow|green|cyan|blue|purple
-#   press red|orange|yellow|green|cyan|blue|purple
+# LED modes (ch57x-2 models):
+#   0 - off (LEDs off)
+#   1 - keypress (lights up on key press)
+#   2 - key follow (non-interactive, follows key state)
+#   3 - backlight (lights up top-left key)
 #
 # LED modes (k8890 model):
 #   <number> (e.g. 1 = steady on)
@@ -49,12 +48,11 @@ while [[ $# -gt 0 ]]; do
             echo "  --led              Interactive LED setup menu"
             echo "  --led <layer> <mode>   Set LED directly (skip menu)"
             echo ""
-            echo "LED modes (k884x models — most devices):"
-            echo "  off                                    Turn LEDs off"
-            echo "  backlight white|red|orange|yellow|green|cyan|blue|purple"
-            echo "  shock   red|orange|yellow|green|cyan|blue|purple"
-            echo "  shock2  red|orange|yellow|green|cyan|blue|purple"
-            echo "  press   red|orange|yellow|green|cyan|blue|purple"
+            echo "LED modes (ch57x-2 models — most devices):"
+            echo "  0    off          Turn LEDs off"
+            echo "  1    keypress     Light up on key press"
+            echo "  2    key follow   Non-interactive, follows key state"
+            echo "  3    backlight    Lights up top-left key"
             echo ""
             echo "  Layer is 0-based (0, 1, or 2)"
             echo ""
@@ -63,9 +61,10 @@ while [[ $# -gt 0 ]]; do
             echo ""
             echo "Examples:"
             echo "  ./upload.sh config.yaml --led              # Interactive menu"
-            echo "  ./upload.sh config.yaml --led 0 backlight white"
-            echo "  ./upload.sh config.yaml --led 0 press cyan"
-            echo "  ./upload.sh config.yaml --led 0 off"
+            echo "  ./upload.sh config.yaml --led 0 0          # Turn off"
+            echo "  ./upload.sh config.yaml --led 0 1          # Keypress mode"
+            echo "  ./upload.sh config.yaml --led 0 2          # Key follow mode"
+            echo "  ./upload.sh config.yaml --led 0 3          # Backlight mode"
             exit 0
             ;;
         *)
@@ -89,8 +88,10 @@ if [ ! -f "$CONFIG_FILE" ]; then
     echo "  3. Run: ./upload.sh <downloaded-file.yaml>"
     echo ""
     echo "With LED:"
-    echo "  ./upload.sh config.yaml --led 0 backlight white"
-    echo "  ./upload.sh config.yaml --led 0 press cyan"
+    echo "  ./upload.sh config.yaml --led 0 0          # Turn off"
+    echo "  ./upload.sh config.yaml --led 0 1          # Keypress mode"
+    echo "  ./upload.sh config.yaml --led 0 2          # Key follow mode"
+    echo "  ./upload.sh config.yaml --led 0 3          # Backlight mode"
     echo ""
     echo "Run ./upload.sh --help for more info"
     exit 1
@@ -127,19 +128,15 @@ if [ "$LED_MODE" = "interactive" ]; then
 
     echo "What would you like the LEDs to do?"
     echo ""
-    echo "  1) Turn off"
-    echo "  2) Stay on all the time (backlight)"
-    echo "  3) Flash when a key is pressed (shock)"
-    echo "  4) Flash differently when pressed (shock2)"
-    echo "  5) Light up only when pressed (press)"
+    echo "  0) Off - Turn LEDs off"
+    echo "  1) Keypress - Light up when a key is pressed"
+    echo "  2) Key follow - Non-interactive, follows key state"
+    echo "  3) Backlight - Lights up the top-left key"
     echo ""
-    read -p "Select [1-5]: " mode_choice
+    read -p "Select [0-3]: " mode_choice
 
     case "$mode_choice" in
-        1)
-            LED_ARGS=("0" "off")
-            ;;
-        2|3|4|5)
+        0|1|2|3)
             # Select layer
             echo ""
             echo "Which layer? (You have layers 1, 2, 3, 4)"
@@ -149,50 +146,7 @@ if [ "$LED_MODE" = "interactive" ]; then
             echo ""
             read -p "Select [0-2]: " layer
 
-            # Select color
-            echo ""
-            echo "Pick a color:"
-            if [ "$mode_choice" = "2" ]; then
-                echo "  1) White (backlight only)"
-            fi
-            echo "  2) Red"
-            echo "  3) Orange"
-            echo "  4) Yellow"
-            echo "  5) Green"
-            echo "  6) Cyan"
-            echo "  7) Blue"
-            echo "  8) Purple"
-            echo ""
-            read -p "Select color: " color_choice
-
-            # Map color choice to name
-            case "$color_choice" in
-                1) color="white" ;;
-                2) color="red" ;;
-                3) color="orange" ;;
-                4) color="yellow" ;;
-                5) color="green" ;;
-                6) color="cyan" ;;
-                7) color="blue" ;;
-                8) color="purple" ;;
-                *) echo "❌ Invalid color choice"; exit 1 ;;
-            esac
-
-            # White only valid for backlight
-            if [ "$color" = "white" ] && [ "$mode_choice" != "2" ]; then
-                echo "❌ White is only available for Backlight mode"
-                exit 1
-            fi
-
-            # Map mode choice to mode name
-            case "$mode_choice" in
-                2) mode="backlight" ;;
-                3) mode="shock" ;;
-                4) mode="shock2" ;;
-                5) mode="press" ;;
-            esac
-
-            LED_ARGS=("$layer" "$mode" "$color")
+            LED_ARGS=("$layer" "$mode_choice")
             ;;
         *)
             echo "❌ Invalid choice"

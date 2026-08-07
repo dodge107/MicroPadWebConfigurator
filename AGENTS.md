@@ -23,10 +23,10 @@ Open in any modern browser.
 
 ```
 src/
-├── app.js          # UI controller, state management, click-to-assign flow
-├── keys.js         # HID usage codes, action parser, media codes
-├── config.js       # Config management, YAML import/export, model definitions
-── logger.js       # Simple structured logger with categories
+├── app.js          # UI controller, state management, click-to-assign flow, localStorage
+├── keys.js         # HID usage codes, action parser, media codes, macro parser
+├── config.js       # Config management, YAML import/export, model definitions, localStorage
+└── logger.js       # Simple structured logger with categories
 ```
 
 **Data Flow**:
@@ -35,10 +35,14 @@ User clicks key → Picker modal opens → Select action → Immediately assigne
                                                     ↓
                                           renderKeyboard() updates UI
                                                     ↓
+                                          autoSave() to localStorage
+                                                    ↓
                                           Export YAML → upload.sh → Device
 ```
 
 **UX**: Click-to-assign — no "Assign" button needed. Click a key on the visual keyboard, the picker modal opens, select an action and it's immediately saved.
+
+**Persistence**: Configuration is auto-saved to browser localStorage on every change (key assignment, model switch, import). On page load, the saved config is automatically restored. Manual save/load/clear buttons are also available in the header.
 
 ## Upload Workflow
 
@@ -54,6 +58,29 @@ The script:
 3. Runs `ch57x-keyboard-tool upload <file>` to write config via raw USB
 
 **Prerequisites**: Rust toolchain and `ch57x-keyboard-tool` must be installed.
+
+## LED Control
+
+The `upload.sh` script supports LED configuration via the `--led` flag:
+
+```bash
+./upload.sh config.yaml --led              # Interactive menu
+./upload.sh config.yaml --led 0 0          # Turn off
+./upload.sh config.yaml --led 0 1          # Keypress mode
+./upload.sh config.yaml --led 0 2          # Key follow mode
+./upload.sh config.yaml --led 0 3          # Backlight mode
+```
+
+**LED Modes (ch57x-2 models)**:
+
+| Mode | Description |
+|------|-------------|
+| `0` | **Off** — LEDs off |
+| `1` | **Keypress** — lights up when a key is pressed |
+| `2` | **Key follow** — non-interactive, follows key state |
+| `3` | **Backlight** — lights up the top-left key |
+
+The first argument is the layer (0-based), the second is the mode number.
 
 ## ⚠️ Critical: Model Name Mapping
 
@@ -72,6 +99,47 @@ All non-Bluetooth devices use `ch57x-2` as the native model name (confirmed by h
 
 **When exporting YAML**, `config.js` maps the web model ID to the native model name via the `nativeModel` field.
 
+## Key Naming Compatibility
+
+The webapp accepts **both** symbolic and named key formats for compatibility with the Rust tool's YAML output:
+
+| Symbolic | Named (Rust tool) | HID Code |
+|----------|-------------------|----------|
+| `-` | `minus` | 0x2D |
+| `=` | `equal` | 0x2E |
+| `[` | `leftbracket` | 0x2F |
+| `]` | `rightbracket` | 0x30 |
+| `\` | `backslash` | 0x31 |
+| `;` | `semicolon` | 0x33 |
+| `'` | `quote` | 0x34 |
+| `` ` `` | `grave` | 0x35 |
+| `,` | `comma` | 0x36 |
+| `.` | `dot` | 0x37 |
+| `/` | `slash` | 0x38 |
+
+**Numpad keys** also have dual naming:
+- `kp/` = `numpadslash`, `kp*` = `numpadasterisk`, `kp-` = `numpadminus`, etc.
+- `kp0`-`kp9` = `numpad0`-`numpad9`
+- `kp.` = `numpaddot`, `kpenter` = `numpadenter`
+
+**Other aliases**:
+- `application` = `compose` (0x65)
+- `macbrightnessup` = `brightnessup`, `macbrightnessdown` = `brightnessdown`
+- `nonushash`, `nonusbackslash` (special international keys)
+
+This ensures YAML files exported from the Rust tool can be imported into the webapp without errors.
+
+## Macro Support
+
+Macros are comma-separated sequences of actions:
+- Format: `action1,action2,action3`
+- Example: `ctrl-a,ctrl-c` (Select All, then Copy)
+- Each action is parsed independently using `parseAction()`
+- Stored as the original string in config, parsed on demand
+- Display formatted: `ctrl-a,ctrl-c` → `Ctrl+A, Ctrl+C`
+
+**Note**: The `{delay(500)}hello` syntax shown in some examples is **not supported** by the Rust tool or webapp. Only comma-separated key actions are valid.
+
 ## Code Conventions
 
 ### Code Style
@@ -82,8 +150,22 @@ All non-Bluetooth devices use `ch57x-2` as the native model name (confirmed by h
 
 ### State Management
 - Central `state` object in `app.js` holds all application state
+- State includes: `currentModel`, `config`, `selectedKey`, `currentSlot`
 - State changes trigger `renderKeyboard()` and `updateKeyCountHint()`
 - No global mutations outside of state object
+- Auto-save to localStorage on every state change via `autoSave()`
+- Slot changes trigger `updateSlotSelector()` to refresh dropdown
+
+### LocalStorage
+- Key: `micropad-configs` (new multi-slot format)
+- Legacy key: `micropad-config` (cleaned up on clear)
+- Stores: `{ _lastUsed: 'slotName', slotName: { model, config, timestamp }, ... }`
+- Auto-saves on: key assignment, key clear, model switch, YAML import, slot change
+- Auto-loads on: page init (loads last used slot)
+- Manual controls: Save, Load, Clear buttons in header + slot selector dropdown
+- Slot management: Create new slots via dropdown, delete slots via 🗑️ button
+- Functions in `config.js`: `saveToLocalStorage()`, `loadFromLocalStorage()`, `getSavedSlots()`, `deleteSlot()`, `clearLocalStorage()`
+- Slot names are sanitized to lowercase alphanumeric with hyphens
 
 ### Logging
 - Use `logger.js` for all logging — never use raw `console.log` in business logic
@@ -138,6 +220,32 @@ All non-Bluetooth devices use `ch57x-2` as the native model name (confirmed by h
 1. **Model name mismatch**: Web app and Rust tool use different model names. Always use the `nativeModel` field when exporting YAML.
 2. **No read-back**: Cannot read current config from device (hardware limitation). The web app works with exported/imported YAML files, not live device state.
 3. **Unassigned keys**: Use `null` (not empty string `""`) in YAML export for unassigned keys.
+4. **Macro syntax**: Only comma-separated actions are supported (e.g., `ctrl-a,ctrl-c`). The `{delay(500)}hello` syntax is not supported.
+5. **Key naming**: The webapp accepts both symbolic (`-`, `[`, `;`) and named (`minus`, `leftbracket`, `semicolon`) formats for compatibility.
+
+## Keyboard Picker Features
+
+The visual keyboard picker in the modal includes:
+
+**Function Keys**:
+- F1-F12 on the first function row
+- F13-F24 on the second function row
+
+**Modifiers**:
+- Left side: Ctrl, Shift, Alt, Win (in the space row)
+- Right side: RCtrl, RShift, RAlt, RWin (dedicated row)
+- Toggle modifiers to create combos like `Ctrl+C`
+
+**Special Keys**:
+- Application (App), Power, PrintScreen, ScrollLock, Pause
+- Navigation cluster: Insert, Home, PageUp, Delete, End, PageDown, Arrows
+
+**Mouse Actions** (in Mouse tab):
+- Click: left, right, middle
+- Wheel: up, down
+- Move: directional (up, down, left, right)
+- Drag: with button specification
+- Custom: arbitrary X/Y offsets via input fields
 
 ## Testing
 
