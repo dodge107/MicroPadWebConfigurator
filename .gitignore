@@ -1,0 +1,13 @@
+# Exported YAML configs (personal, not for repo)
+micropad-*.yaml
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Node
+node_modules/
+
+# IDE
+.vscode/
+.idea/

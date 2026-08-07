@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MicroPad Configurator</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="app">
+    <!-- Header -->
+    <header class="header">
+      <div class="header-left">
+        <h1>⌨️ MicroPad</h1>
+        <span class="subtitle">Visual configuration designer for CH57x macro keyboards</span>
+      </div>
+      <div class="header-right">
+        <button id="btn-import" class="btn btn-ghost">📂 Import</button>
+        <button id="btn-export" class="btn btn-primary">📥 Export YAML</button>
+        <input type="file" id="file-import" accept=".yaml,.yml" style="display:none;">
+      </div>
+    </header>
+
+    <!-- Toolbar: Model -->
+    <div class="toolbar">
+      <div class="toolbar-group">
+        <label>Model:</label>
+        <select id="model-select" class="select">
+          <option value="ch57x-1">3×4 with 2 knobs (Bluetooth)</option>
+          <option value="ch57x-2" selected>3×3 with 2 knobs</option>
+          <option value="ch57x-3">3×2 with 1 knob</option>
+          <option value="ch57x-4">3×1 with 1 knob</option>
+          <option value="ch57x-5">4×1 no knobs</option>
+          <option value="ch57x-4x4">4×4 with 2 knobs</option>
+        </select>
+      </div>
+      <div class="toolbar-group toolbar-spacer"></div>
+      <div class="toolbar-group">
+        <span class="hint" id="key-count-hint"></span>
+      </div>
+    </div>
+
+    <!-- Main: Visual Keyboard -->
+    <main class="main-area">
+      <div id="keyboard-visual" class="keyboard-visual"></div>
+    </main>
+  </div>
+
+  <!-- Key Picker Modal -->
+  <div id="key-picker-overlay" class="picker-overlay" style="display:none;">
+    <div class="picker-modal">
+      <div class="picker-header">
+        <div class="picker-title">
+          <span id="picker-key-name">Button (1, 1)</span>
+          <span id="picker-current" class="picker-current">No action</span>
+        </div>
+        <button id="picker-close" class="picker-close-btn">&times;</button>
+      </div>
+
+      <!-- Picker Tabs -->
+      <div class="picker-tabs">
+        <button class="picker-tab active" data-tab="keyboard">⌨️ Keyboard</button>
+        <button class="picker-tab" data-tab="media">🎵 Media</button>
+        <button class="picker-tab" data-tab="mouse">🖱️ Mouse</button>
+        <button class="picker-tab" data-tab="macro">📝 Macro</button>
+      </div>
+
+      <!-- Keyboard Tab -->
+      <div class="picker-panel" id="picker-keyboard">
+        <div class="modifier-bar">
+          <label class="mod-toggle"><input type="checkbox" id="pick-mod-ctrl" value="ctrl"><span>Ctrl</span></label>
+          <label class="mod-toggle"><input type="checkbox" id="pick-mod-shift" value="shift"><span>Shift</span></label>
+          <label class="mod-toggle"><input type="checkbox" id="pick-mod-alt" value="alt"><span>Alt</span></label>
+          <label class="mod-toggle"><input type="checkbox" id="pick-mod-win" value="win"><span>Win</span></label>
+          <span class="mod-hint">Hold modifiers + click a key below</span>
+        </div>
+        <div class="keyboard-layout">
+          <!-- Function row -->
+          <div class="kb-row kb-row-fn">
+            <button class="kb-key kb-key-sm" data-key="escape">Esc</button>
+            <span class="kb-spacer"></span>
+            <button class="kb-key kb-key-sm" data-key="f1">F1</button>
+            <button class="kb-key kb-key-sm" data-key="f2">F2</button>
+            <button class="kb-key kb-key-sm" data-key="f3">F3</button>
+            <button class="kb-key kb-key-sm" data-key="f4">F4</button>
+            <span class="kb-spacer"></span>
+            <button class="kb-key kb-key-sm" data-key="f5">F5</button>
+            <button class="kb-key kb-key-sm" data-key="f6">F6</button>
+            <button class="kb-key kb-key-sm" data-key="f7">F7</button>
+            <button class="kb-key kb-key-sm" data-key="f8">F8</button>
+            <span class="kb-spacer"></span>
+            <button class="kb-key kb-key-sm" data-key="f9">F9</button>
+            <button class="kb-key kb-key-sm" data-key="f10">F10</button>
+            <button class="kb-key kb-key-sm" data-key="f11">F11</button>
+            <button class="kb-key kb-key-sm" data-key="f12">F12</button>
+          </div>
+          <!-- Number row -->
+          <div class="kb-row">
+            <button class="kb-key" data-key="`">~</button>
+            <button class="kb-key" data-key="1">1</button>
+            <button class="kb-key" data-key="2">2</button>
+            <button class="kb-key" data-key="3">3</button>
+            <button class="kb-key" data-key="4">4</button>
+            <button class="kb-key" data-key="5">5</button>
+            <button class="kb-key" data-key="6">6</button>
+            <button class="kb-key" data-key="7">7</button>
+            <button class="kb-key" data-key="8">8</button>
+            <button class="kb-key" data-key="9">9</button>
+            <button class="kb-key" data-key="0">0</button>
+            <button class="kb-key" data-key="-">-</button>
+            <button class="kb-key" data-key="=">=</button>
+            <button class="kb-key kb-key-md" data-key="backspace">⌫</button>
+          </div>
+          <!-- QWERTY row -->
+          <div class="kb-row">
+            <button class="kb-key kb-key-md" data-key="tab">Tab</button>
+            <button class="kb-key" data-key="q">Q</button>
+            <button class="kb-key" data-key="w">W</button>
+            <button class="kb-key" data-key="e">E</button>
+            <button class="kb-key" data-key="r">R</button>
+            <button class="kb-key" data-key="t">T</button>
+            <button class="kb-key" data-key="y">Y</button>
+            <button class="kb-key" data-key="u">U</button>
+            <button class="kb-key" data-key="i">I</button>
+            <button class="kb-key" data-key="o">O</button>
+            <button class="kb-key" data-key="p">P</button>
+            <button class="kb-key" data-key="[">[</button>
+            <button class="kb-key" data-key="]">]</button>
+            <button class="kb-key" data-key="\">\</button>
+          </div>
+          <!-- Home row -->
+          <div class="kb-row">
+            <button class="kb-key kb-key-lg" data-key="capslock">Caps</button>
+            <button class="kb-key" data-key="a">A</button>
+            <button class="kb-key" data-key="s">S</button>
+            <button class="kb-key" data-key="d">D</button>
+            <button class="kb-key" data-key="f">F</button>
+            <button class="kb-key" data-key="g">G</button>
+            <button class="kb-key" data-key="h">H</button>
+            <button class="kb-key" data-key="j">J</button>
+            <button class="kb-key" data-key="k">K</button>
+            <button class="kb-key" data-key="l">L</button>
+            <button class="kb-key" data-key=";">;</button>
+            <button class="kb-key" data-key="'">'</button>
+            <button class="kb-key kb-key-lg" data-key="enter">Enter</button>
+          </div>
+          <!-- Bottom row -->
+          <div class="kb-row">
+            <button class="kb-key kb-key-xl" data-key="shift">Shift</button>
+            <button class="kb-key" data-key="z">Z</button>
+            <button class="kb-key" data-key="x">X</button>
+            <button class="kb-key" data-key="c">C</button>
+            <button class="kb-key" data-key="v">V</button>
+            <button class="kb-key" data-key="b">B</button>
+            <button class="kb-key" data-key="n">N</button>
+            <button class="kb-key" data-key="m">M</button>
+            <button class="kb-key" data-key=",">,</button>
+            <button class="kb-key" data-key=".">.</button>
+            <button class="kb-key" data-key="/">/</button>
+            <button class="kb-key kb-key-xl" data-key="shift">Shift</button>
+          </div>
+          <!-- Space row -->
+          <div class="kb-row">
+            <button class="kb-key kb-key-md" data-key="ctrl">Ctrl</button>
+            <button class="kb-key kb-key-md" data-key="alt">Alt</button>
+            <button class="kb-key kb-key-space" data-key="space">Space</button>
+            <button class="kb-key kb-key-md" data-key="alt">Alt</button>
+            <button class="kb-key kb-key-md" data-key="ctrl">Ctrl</button>
+          </div>
+          <!-- Navigation cluster -->
+          <div class="kb-row kb-row-nav">
+            <span class="kb-spacer"></span>
+            <button class="kb-key kb-key-sm" data-key="insert">Ins</button>
+            <button class="kb-key kb-key-sm" data-key="home">Home</button>
+            <button class="kb-key kb-key-sm" data-key="pageup">PgUp</button>
+            <span class="kb-spacer-sm"></span>
+            <button class="kb-key kb-key-sm" data-key="delete">Del</button>
+            <button class="kb-key kb-key-sm" data-key="end">End</button>
+            <button class="kb-key kb-key-sm" data-key="pagedown">PgDn</button>
+            <span class="kb-spacer-sm"></span>
+            <button class="kb-key kb-key-sm kb-key-up" data-key="up">↑</button>
+            <span class="kb-spacer-sm"></span>
+            <button class="kb-key kb-key-sm" data-key="left">←</button>
+            <button class="kb-key kb-key-sm" data-key="down">↓</button>
+            <button class="kb-key kb-key-sm" data-key="right">→</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Media Tab -->
+      <div class="picker-panel" id="picker-media" style="display:none;">
+        <div class="media-grid">
+          <button class="media-btn" data-media="play">▶️ Play/Pause</button>
+          <button class="media-btn" data-media="prev">⏮ Previous</button>
+          <button class="media-btn" data-media="next">⏭ Next</button>
+          <button class="media-btn" data-media="stop">⏹ Stop</button>
+          <button class="media-btn" data-media="volumeup">🔊 Vol Up</button>
+          <button class="media-btn" data-media="volumedown">🔉 Vol Down</button>
+          <button class="media-btn" data-media="mute">🔇 Mute</button>
+          <button class="media-btn" data-media="brightnessup">☀️ Bright Up</button>
+          <button class="media-btn" data-media="brightnessdown">🌅 Bright Down</button>
+          <button class="media-btn" data-media="calculator">🧮 Calculator</button>
+          <button class="media-btn" data-media="screenlock">🔒 Screen Lock</button>
+        </div>
+      </div>
+
+      <!-- Mouse Tab -->
+      <div class="picker-panel" id="picker-mouse" style="display:none;">
+        <div class="mouse-grid">
+          <button class="mouse-btn" data-mouse="click">🖱️ Left Click</button>
+          <button class="mouse-btn" data-mouse="click-right">Right Click</button>
+          <button class="mouse-btn" data-mouse="click-middle">Middle Click</button>
+          <button class="mouse-btn" data-mouse="wheelup">Wheel Up</button>
+          <button class="mouse-btn" data-mouse="wheeldown">Wheel Down</button>
+        </div>
+        <div class="mouse-custom">
+          <label>Custom movement:</label>
+          <div class="mouse-custom-row">
+            <label class="mouse-type-label">Type:</label>
+            <select id="pick-mouse-type" class="select">
+              <option value="move">Move</option>
+              <option value="drag">Drag</option>
+            </select>
+            <label>X:</label>
+            <input type="number" id="pick-mouse-dx" class="input input-sm" value="0" min="-127" max="127">
+            <label>Y:</label>
+            <input type="number" id="pick-mouse-dy" class="input input-sm" value="0" min="-127" max="127">
+            <button id="pick-mouse-apply" class="btn btn-primary btn-sm">Apply</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Macro Tab -->
+      <div class="picker-panel" id="picker-macro" style="display:none;">
+        <div class="macro-panel">
+          <label>Enter a sequence of actions (comma-separated):</label>
+          <input type="text" id="pick-macro-input" class="input input-lg" placeholder="ctrl-a,ctrl-c  or  {delay(500)}hello">
+          <div class="macro-examples">
+            <span class="hint">Examples:</span>
+            <button class="macro-example" data-macro="ctrl-c">Copy (Ctrl+C)</button>
+            <button class="macro-example" data-macro="ctrl-v">Paste (Ctrl+V)</button>
+            <button class="macro-example" data-macro="ctrl-z">Undo (Ctrl+Z)</button>
+            <button class="macro-example" data-macro="ctrl-a,ctrl-c">Select All + Copy</button>
+            <button class="macro-example" data-macro="alt-tab">Switch Window</button>
+          </div>
+          <button id="pick-macro-apply" class="btn btn-primary">Apply Macro</button>
+        </div>
+      </div>
+
+      <!-- Picker Footer -->
+      <div class="picker-footer">
+        <button id="picker-clear" class="btn btn-danger">🗑️ Clear</button>
+        <button id="picker-done" class="btn btn-ghost">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast container -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <script type="module" src="src/app.js"></script>
+</body>
+</html>

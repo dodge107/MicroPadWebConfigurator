@@ -1,0 +1,11 @@
+{
+  "name": "micropad",
+  "version": "1.0.0",
+  "description": "Browser-based visual configuration designer for CH57x macro keyboards",
+  "scripts": {
+    "start": "npx serve docs",
+    "dev": "npx serve docs"
+  },
+  "keywords": ["ch57x", "macropad", "keyboard", "configurator"],
+  "license": "MIT"
+}
