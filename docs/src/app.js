@@ -103,6 +103,13 @@ function setupOrientation() {
     autoSave();
     showToast(`Orientation: ${e.target.options[e.target.selectedIndex].text}`, 'info');
     logger.info('APP', `Orientation changed to: ${state.orientation}`);
+
+    // Re-show preset description if a preset is selected
+    const presetSelect = $('#preset-select');
+    const currentPreset = presetSelect?.value;
+    if (currentPreset) {
+      showPresetDescription(currentPreset, state.currentModel);
+    }
   });
 }
 
@@ -219,18 +226,19 @@ function renderKeyboard() {
 
   // Knobs
   if (model.knobs > 0) {
-    html += '<div class="knobs-row">';
+    // Build knobs HTML
+    let knobsHtml = '<div class="knobs-row">';
     for (let k = 0; k < model.knobs; k++) {
       const knob = layer.knobs[k];
       const knobActions = ['ccw', 'press', 'cw'];
       const knobLabels = ['↺ CCW', '⏎ Press', '↻ CW'];
 
-      html += `<div class="knob-group">`;
-      html += `<div class="knob-visual" data-type="knob" data-index="${k}">
+      knobsHtml += `<div class="knob-group">`;
+      knobsHtml += `<div class="knob-visual" data-type="knob" data-index="${k}">
         <div class="knob-indicator"></div>
         <span class="knob-label">Knob ${k + 1}</span>
       </div>`;
-      html += `<div class="knob-actions">`;
+      knobsHtml += `<div class="knob-actions">`;
       for (let a = 0; a < 3; a++) {
         const actionKey = knobActions[a];
         const action = knob?.[actionKey];
@@ -239,15 +247,30 @@ function renderKeyboard() {
                          state.selectedKey?.knobAction === actionKey;
         const isAssigned = action != null;
 
-        html += `<button class="knob-action-btn ${isActive ? 'selected' : ''} ${isAssigned ? 'assigned' : ''}"
+        knobsHtml += `<button class="knob-action-btn ${isActive ? 'selected' : ''} ${isAssigned ? 'assigned' : ''}"
                          data-type="knob" data-index="${k}" data-action="${actionKey}">
           <span class="knob-action-label">${knobLabels[a]}</span>
           ${isAssigned ? `<span class="knob-action-value">${formatActionLabel(action)}</span>` : ''}
         </button>`;
       }
-      html += `</div></div>`;
+      knobsHtml += `</div></div>`;
     }
-    html += '</div>';
+    knobsHtml += '</div>';
+
+    // Position knobs based on orientation
+    // Normal/upsidedown: knobs below grid
+    // Clockwise: knobs to the right of grid
+    // Counter-clockwise: knobs to the left of grid
+    if (orientation === 'clockwise') {
+      html = `<div class="keyboard-layout-rotated" style="display:flex; align-items:center; gap:16px; justify-content:center;">` + html + knobsHtml + `</div>`;
+    } else if (orientation === 'counterclockwise') {
+      html = `<div class="keyboard-layout-rotated" style="display:flex; align-items:center; gap:16px; justify-content:center;">` + knobsHtml + html + `</div>`;
+    } else if (orientation === 'upsidedown') {
+      html = knobsHtml + html;
+    } else {
+      // normal
+      html = html + knobsHtml;
+    }
   }
 
   container.innerHTML = html;
