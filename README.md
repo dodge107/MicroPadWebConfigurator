@@ -45,6 +45,15 @@ All devices use `ch57x-2` as the native model name in exported YAML (confirmed b
 
 If you have one of the untested models and encounter issues, please [create an issue](../../issues) with details about the problem and I'll add the necessary fixes.
 
+### Devices Not Yet Supported
+
+The following devices are supported by the [ch57x-keyboard-tool](https://github.com/kriomant/ch57x-keyboard-tool) Rust utility but are not yet included in this web configurator:
+
+- **4×3 with 3 knobs** — shown in the Rust tool's documentation photos
+- **5×3 with 3 knobs** — shown in the Rust tool's documentation photos
+
+If you have one of these devices and would like web configurator support, please [create an issue](../../issues) or submit a pull request adding the model definitions.
+
 ## Quick Start
 
 ```bash
