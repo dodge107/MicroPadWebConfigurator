@@ -45,6 +45,28 @@
         </select>
         <button id="btn-delete-slot" class="btn btn-ghost btn-sm" title="Delete current slot">🗑️</button>
       </div>
+      <div class="toolbar-group">
+        <label>Preset:</label>
+        <select id="preset-select" class="select">
+          <option value="">— None —</option>
+          <option value="gamer">🎮 Gamer</option>
+          <option value="office">💼 Office</option>
+          <option value="streamer">🎬 Streamer</option>
+          <option value="youtube">📺 YouTube</option>
+          <option value="ai">🤖 AI</option>
+          <option value="vscode">💻 VS Code</option>
+          <option value="music">🎹 Music Producer</option>
+          <option value="designer">🎨 Designer</option>
+          <option value="video">🎞️ Video Editor</option>
+          <option value="meeting">📞 Meeting</option>
+          <option value="accessibility">♿ Accessibility</option>
+          <option value="writer">✍️ Writer</option>
+          <option value="spreadsheet">📊 Spreadsheet</option>
+          <option value="modeling">🧊 3D Modeling</option>
+          <option value="sysadmin">🔧 Sysadmin</option>
+          <option value="presentation">📽️ Presentation</option>
+        </select>
+      </div>
       <div class="toolbar-group toolbar-spacer"></div>
       <div class="toolbar-group">
         <span class="hint" id="key-count-hint"></span>
@@ -54,6 +76,7 @@
     <!-- Main: Visual Keyboard -->
     <main class="main-area">
       <div id="keyboard-visual" class="keyboard-visual"></div>
+      <div id="preset-description" class="preset-description" style="display:none;"></div>
     </main>
   </div>
 

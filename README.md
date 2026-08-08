@@ -11,6 +11,7 @@ Browser-based visual configuration designer for CH57x-based macro keyboards. Des
 - **Media & mouse actions** — volume, playback, brightness, clicks, scroll, custom movement/drag
 - **Macro support** — multi-key sequences with comma syntax (e.g., `ctrl-a,ctrl-c`)
 - **Knob support** — assign CCW, press, and CW actions to rotary encoders
+- **17 built-in presets** — one-click configurations for common workflows (see below)
 - **Multi-slot storage** — save multiple keyboard configurations in named slots, auto-restores last used
 - **YAML export/import** — compatible with `ch57x-keyboard-tool` (Rust CLI)
 - **LED control** — interactive LED setup via the upload script
@@ -28,6 +29,20 @@ Browser-based visual configuration designer for CH57x-based macro keyboards. Des
 | `ch57x-4x4` | 4×4 + 2 knobs | Wired |
 
 All devices use `ch57x-2` as the native model name in exported YAML (confirmed by hardware testing).
+
+### Hardware Testing Status
+
+**Tested & confirmed working:**
+- `ch57x-3` (3×2 + 1 knob)
+- `ch57x-4` (3×1 + 1 knob)
+
+**Not yet tested on hardware:**
+- `ch57x-1` (3×4 + 2 knobs, Bluetooth)
+- `ch57x-2` (3×3 + 2 knobs)
+- `ch57x-5` (4×1, no knobs)
+- `ch57x-4x4` (4×4 + 2 knobs)
+
+If you have one of the untested models and encounter issues, please [create an issue](../../issues) with details about the problem and I'll add the necessary fixes.
 
 ## Quick Start
 
@@ -53,6 +68,36 @@ Open **http://localhost:3000** in any modern browser.
 6. Your configuration is **auto-saved** to the current slot
 7. Click **📥 Export YAML** to download your config
 8. Upload to your device: `./upload.sh your-config.yaml`
+
+### Presets
+
+The app includes 17 built-in presets that instantly configure all keys and knobs for common workflows. Select a preset from the dropdown, and a description panel appears showing what each key does and which apps benefit.
+
+| Preset | Icon | Focus |
+|--------|------|-------|
+| **Gamer** | 🎮 | Weapon slots, ability keys (Q/E/R), utility, volume on knobs |
+| **Office** | 💼 | Copy/Paste/Undo, Save, Find, Alt+Tab, zoom on knobs |
+| **Streamer** | 🎬 | OBS scene switching (F13–F20), mic mute, Discord mute |
+| **YouTube** | 📺 | Play/Pause, J/K/L keys, volume, timeline seek on knobs |
+| **AI** | 🤖 | Clipboard ops, app switching (ChatGPT/Claude/Copilot/Cursor), submit |
+| **VS Code** | 💻 | Multi-cursor (Ctrl+D), multi-select (Ctrl+Shift+L), code navigation |
+| **Music Producer** | 🎹 | DAW transport, duplicate, split, record, timeline scrub |
+| **Designer** | 🎨 | Tools (V/B/E/T), zoom, layers, transform for Photoshop/Figma |
+| **Video Editor** | 🎞️ | Timeline, razor (Ctrl+K), frame scrub, ripple delete |
+| **Meeting** | 📞 | Mute audio/video, screen share, hand raise for Zoom/Teams |
+| **Accessibility** | ♿ | Magnifier, narrator, high contrast, navigation aids |
+| **Writer** | ✍️ | Bold/italic/underline, find/replace, headings, font size |
+| **Spreadsheet** | 📊 | Cell navigation, copy/paste, filter, auto-sum |
+| **3D Modeling** | 🧊 | Grab/Rotate/Scale (G/R/S), viewport controls for Blender/Maya |
+| **Sysadmin** | 🔧 | tmux pane splitting, shell shortcuts, process management |
+| **Presentation** | 📽️ | Slide navigation, black/white screen, presenter tools |
+
+Each preset has unique configurations tailored to every model's button and knob count. After applying a preset, the description panel shows:
+- What each row/button/knob is configured for
+- A summary of the preset's purpose
+- Recommended apps that benefit from the layout
+
+Click the **×** button on the description panel to dismiss it after reviewing.
 
 ### Multi-Slot Storage
 
@@ -162,6 +207,7 @@ micropad/
 │       ├── app.js     # UI controller, click-to-assign flow
 │       ├── config.js  # YAML import/export, model definitions
 │       ├── keys.js    # HID usage codes, action parser
+│       ├── presets.js # 17 built-in preset configurations
 │       └── logger.js  # Structured logger
 ├── upload.sh          # Upload YAML + LED control
 ├── package.json
@@ -179,7 +225,8 @@ The `docs/` folder is the GitHub Pages root. To deploy:
 ## Limitations
 
 - **No read-back** — cannot read current config from device (hardware limitation)
-- **Layer switching** — handled by a physical button on the device, not software-configurable
+- **Layers** — removed from the web app. Layer switching is only supported on the Bluetooth model (`ch57x-1`) and has not been tested. If you need layer support, please [create an issue](../../issues)
+- **Untested models** — only the 3×2+1knob and 3×1+1knob models have been physically tested. Presets and configurations for other models are provided but not verified on hardware
 
 ## Credits
 

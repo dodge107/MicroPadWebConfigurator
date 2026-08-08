@@ -7,6 +7,7 @@
 
 import { KEYBOARD_MODELS, createEmptyConfig, parseYAML, toYAML, saveToLocalStorage, loadFromLocalStorage, clearLocalStorage, getSavedSlots, deleteSlot } from './config.js';
 import { parseAction, MEDIA_CODES } from './keys.js';
+import { PRESETS, applyPreset, getPresetDescription } from './presets.js';
 import { logger } from './logger.js';
 
 // DOM helpers
@@ -40,6 +41,7 @@ function init() {
   setupPicker();
   setupImportExport();
   setupLocalStorageButtons();
+  setupPresets();
   renderKeyboard();
   updateKeyCountHint();
   updateSlotSelector();
@@ -52,6 +54,20 @@ function setupToolbar() {
     state.currentModel = e.target.value;
     state.config = createEmptyConfig(state.currentModel);
     state.selectedKey = null;
+
+    // Re-apply current preset if one is selected
+    const presetSelect = $('#preset-select');
+    const currentPreset = presetSelect?.value;
+    if (currentPreset) {
+      const success = applyPreset(currentPreset, state.currentModel, state.config);
+      if (success) {
+        showPresetDescription(currentPreset, state.currentModel);
+        logger.info('APP', `Re-applied preset: ${currentPreset} for model: ${state.currentModel}`);
+      } else {
+        hidePresetDescription();
+      }
+    }
+
     renderKeyboard();
     updateKeyCountHint();
     autoSave();
@@ -564,6 +580,102 @@ function setupLocalStorageButtons() {
         showToast('All browser storage cleared', 'info');
       }
     });
+  }
+}
+
+// ─── Presets ─────────────────────────────────────────────────────────
+function setupPresets() {
+  const presetSelect = $('#preset-select');
+  if (!presetSelect) return;
+
+  presetSelect.addEventListener('change', (e) => {
+    const presetId = e.target.value;
+    if (!presetId) {
+      // Hide description when preset is cleared
+      hidePresetDescription();
+      return;
+    }
+
+    // Apply the preset to the current config
+    const success = applyPreset(presetId, state.currentModel, state.config);
+    if (success) {
+      state.selectedKey = null;
+      renderKeyboard();
+      updateKeyCountHint();
+      autoSave();
+      showPresetDescription(presetId, state.currentModel);
+      showToast(`Applied "${PRESETS[presetId].name}" preset`, 'success');
+      logger.info('APP', `Applied preset: ${presetId} for model: ${state.currentModel}`);
+    } else {
+      showToast(`No preset available for this model`, 'error');
+      presetSelect.value = '';
+    }
+  });
+}
+
+function showPresetDescription(presetId, modelId) {
+  const info = getPresetDescription(presetId, modelId);
+  if (!info) return;
+
+  const container = $('#preset-description');
+  if (!container) return;
+
+  let html = '';
+
+  // Header
+  html += `<div class="preset-desc-header">`;
+  html += `<span class="preset-desc-icon">${info.icon}</span>`;
+  html += `<div class="preset-desc-title-group">`;
+  html += `<h3 class="preset-desc-title">${info.name} Preset Applied</h3>`;
+  html += `<p class="preset-desc-tagline">${info.tagline}</p>`;
+  html += `</div>`;
+  html += `<button class="preset-desc-close" id="preset-desc-close" title="Close">&times;</button>`;
+  html += `</div>`;
+
+  // Description
+  html += `<p class="preset-desc-text">${info.description}</p>`;
+
+  // Key descriptions
+  if (info.keyDescriptions) {
+    html += `<div class="preset-desc-keys">`;
+    html += `<h4>⚙️ Configuration</h4>`;
+    html += `<ul>`;
+    for (const [key, desc] of Object.entries(info.keyDescriptions)) {
+      html += `<li><strong>${key}:</strong> ${desc}</li>`;
+    }
+    html += `</ul>`;
+    html += `</div>`;
+  }
+
+  // Recommended apps
+  if (info.apps && info.apps.length > 0) {
+    html += `<div class="preset-desc-apps">`;
+    html += `<h4>📱 Recommended Apps</h4>`;
+    html += `<div class="preset-app-tags">`;
+    for (const app of info.apps) {
+      html += `<span class="preset-app-tag">${app}</span>`;
+    }
+    html += `</div>`;
+    html += `</div>`;
+  }
+
+  container.innerHTML = html;
+  container.style.display = 'block';
+
+  // Wire up close button
+  const closeBtn = container.querySelector('#preset-desc-close');
+  if (closeBtn) {
+    closeBtn.addEventListener('click', () => {
+      hidePresetDescription();
+    });
+  }
+}
+
+function hidePresetDescription() {
+  const container = $('#preset-description');
+  if (container) {
+    container.style.display = 'none';
+    container.innerHTML = '';
   }
 }
 

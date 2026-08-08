@@ -640,6 +640,128 @@ body {
   to { opacity: 1; transform: translateX(0); }
 }
 
+/* ─── Preset Description Panel ──────────────────────────────────────── */
+.preset-description {
+  margin-top: 24px;
+  padding: 20px 24px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  max-width: 700px;
+  margin-left: auto;
+  margin-right: auto;
+  animation: presetSlideIn 0.3s ease;
+}
+
+@keyframes presetSlideIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.preset-desc-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.preset-desc-close {
+  margin-left: auto;
+  background: none;
+  border: none;
+  font-size: 1.4rem;
+  color: var(--text-dim);
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  line-height: 1;
+  transition: all 0.15s ease;
+}
+.preset-desc-close:hover {
+  background: var(--bg);
+  color: var(--text);
+}
+
+.preset-desc-icon {
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.preset-desc-title-group {
+  flex: 1;
+}
+
+.preset-desc-title {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.preset-desc-tagline {
+  margin: 2px 0 0;
+  font-size: 0.85rem;
+  color: var(--text-dim);
+}
+
+.preset-desc-text {
+  margin: 0 0 16px;
+  font-size: 0.9rem;
+  color: var(--text-dim);
+  line-height: 1.5;
+}
+
+.preset-desc-keys {
+  margin-bottom: 16px;
+}
+
+.preset-desc-keys h4 {
+  margin: 0 0 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.preset-desc-keys ul {
+  margin: 0;
+  padding: 0 0 0 18px;
+  list-style: disc;
+}
+
+.preset-desc-keys li {
+  font-size: 0.85rem;
+  color: var(--text-dim);
+  margin-bottom: 4px;
+  line-height: 1.4;
+}
+
+.preset-desc-keys li strong {
+  color: var(--text);
+}
+
+.preset-desc-apps h4 {
+  margin: 0 0 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.preset-app-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.preset-app-tag {
+  display: inline-block;
+  padding: 4px 10px;
+  font-size: 0.78rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-dim);
+}
+
 /* ─── Responsive ────────────────────────────────────────────────────── */
 @media (max-width: 768px) {
   .header { flex-direction: column; gap: 12px; text-align: center; }
