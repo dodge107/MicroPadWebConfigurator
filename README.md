@@ -206,19 +206,6 @@ layers:
 
 Unassigned keys use `null`.
 
-### Orientation
-
-The `orientation` field controls how the button grid maps to the physical device. Set it via the **Orientation** dropdown in the toolbar.
-
-| Value | Description |
-|-------|-------------|
-| `normal` | Default upright orientation |
-| `upsidedown` | Rotated 180° |
-| `clockwise` | Rotated 90° clockwise |
-| `counterclockwise` | Rotated 90° counter-clockwise |
-
-**Note**: When you change the orientation in the UI, the key bindings are physically rotated in the configuration data. The button array dimensions change for clockwise/counter-clockwise orientations (e.g., a 3×2 grid becomes 2×3). This ensures the visual layout matches the physical device orientation while maintaining the correct key assignments.
-
 ## Upload Setup
 
 The web app runs in any browser. The upload tool (`ch57x-keyboard-tool`) works natively on **Apple Mac** and **Linux** (Windows via WSL).
