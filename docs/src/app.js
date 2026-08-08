@@ -741,6 +741,17 @@ function showPresetDescription(presetId, modelId) {
   // Description
   html += `<p class="preset-desc-text">${info.description}</p>`;
 
+  // Orientation note
+  const orientation = state.orientation || 'normal';
+  if (orientation !== 'normal') {
+    const orientationLabels = {
+      'upsidedown': 'Upside Down',
+      'clockwise': 'Clockwise',
+      'counterclockwise': 'Counter-Clockwise',
+    };
+    html += `<p class="preset-desc-orientation-note">🔄 <strong>Layout rotated ${orientationLabels[orientation]}:</strong> The key assignments below describe the logical layout. On screen, the grid is rotated to match your device orientation.</p>`;
+  }
+
   // Key descriptions
   if (info.keyDescriptions) {
     html += `<div class="preset-desc-keys">`;

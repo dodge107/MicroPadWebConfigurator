@@ -711,6 +711,16 @@ body {
   line-height: 1.5;
 }
 
+.preset-desc-orientation-note {
+  margin: 0 0 16px;
+  padding: 8px 12px;
+  font-size: 0.85rem;
+  color: var(--accent);
+  background: var(--accent-bg, rgba(59, 130, 246, 0.1));
+  border-radius: 6px;
+  line-height: 1.4;
+}
+
 .preset-desc-keys {
   margin-bottom: 16px;
 }
