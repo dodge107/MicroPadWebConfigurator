@@ -129,8 +129,10 @@ This walks you through mode selection. There are 4 LED modes for ch57x-2 models:
 |------|-------------|
 | `0` | **Off** — LEDs off |
 | `1` | **Keypress** — lights up when a key is pressed |
-| `2` | **Key follow** — non-interactive, follows key state |
-| `3` | **Backlight** — lights up the top-left key |
+| `2` | **Key follow** — non-interactive, chnages coulour and runs across the LED's |
+| `3` | **WTF** — lights up one of the keys, seems to lock the LED on the last LED - does not last past a power cycle?  |
+
+
 
 You can also pass LED settings directly:
 
@@ -138,7 +140,7 @@ You can also pass LED settings directly:
 ./upload.sh config.yaml --led 0 0    # Turn off
 ./upload.sh config.yaml --led 0 1    # Keypress mode
 ./upload.sh config.yaml --led 0 2    # Key follow mode
-./upload.sh config.yaml --led 0 3    # Backlight mode
+./upload.sh config.yaml --led 0 3    # WTF mode
 ```
 
 ## Action Types
