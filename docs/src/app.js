@@ -58,6 +58,18 @@ function setupToolbar() {
     state.currentModel = e.target.value;
     state.config = createEmptyConfig(state.currentModel);
     state.config.orientation = state.orientation;
+    
+    // If orientation is rotated, rotate the empty config to match
+    if (state.orientation === 'clockwise' || state.orientation === 'counterclockwise') {
+      const model = KEYBOARD_MODELS[state.currentModel];
+      const layer = state.config.layers[0];
+      if (state.orientation === 'clockwise') {
+        layer.buttons = rotateButtonsCW(layer.buttons, model.rows, model.cols);
+      } else {
+        layer.buttons = rotateButtonsCCW(layer.buttons, model.rows, model.cols);
+      }
+    }
+    
     state.selectedKey = null;
 
     // Re-apply current preset if one is selected
@@ -97,7 +109,15 @@ function updateKeyCountHint() {
 // ─── Orientation ─────────────────────────────────────────────────────
 function setupOrientation() {
   $('#orientation-select').addEventListener('change', (e) => {
-    state.orientation = e.target.value;
+    const newOrientation = e.target.value;
+    const oldOrientation = state.orientation;
+    
+    // Rotate the actual data when orientation changes
+    if (oldOrientation !== newOrientation) {
+      rotateConfigData(oldOrientation, newOrientation);
+    }
+    
+    state.orientation = newOrientation;
     state.config.orientation = state.orientation;
     renderKeyboard();
     autoSave();
@@ -111,6 +131,117 @@ function setupOrientation() {
       showPresetDescription(currentPreset, state.currentModel);
     }
   });
+}
+
+/**
+ * Rotate the button array in the config data structure.
+ * This physically rotates the assignments when orientation changes.
+ */
+function rotateConfigData(fromOrientation, toOrientation) {
+  const model = KEYBOARD_MODELS[state.currentModel];
+  const layer = state.config.layers[0];
+  
+  // Determine the current array dimensions based on the fromOrientation
+  const isFromRotated = fromOrientation === 'clockwise' || fromOrientation === 'counterclockwise';
+  const currentRows = isFromRotated ? model.cols : model.rows;
+  const currentCols = isFromRotated ? model.rows : model.cols;
+  
+  // Define rotation transitions
+  const rotations = {
+    'normal_to_clockwise': 'cw',
+    'normal_to_counterclockwise': 'ccw',
+    'normal_to_upsidedown': '180',
+    'clockwise_to_normal': 'ccw',
+    'clockwise_to_counterclockwise': '180',
+    'clockwise_to_upsidedown': 'cw',
+    'counterclockwise_to_normal': 'cw',
+    'counterclockwise_to_clockwise': '180',
+    'counterclockwise_to_upsidedown': 'ccw',
+    'upsidedown_to_normal': '180',
+    'upsidedown_to_clockwise': 'ccw',
+    'upsidedown_to_counterclockwise': 'cw',
+  };
+  
+  const key = `${fromOrientation}_to_${toOrientation}`;
+  const rotation = rotations[key];
+  
+  if (!rotation) return;
+  
+  // Rotate buttons using the CURRENT array dimensions
+  if (rotation === 'cw') {
+    layer.buttons = rotateButtonsCW(layer.buttons, currentRows, currentCols);
+  } else if (rotation === 'ccw') {
+    layer.buttons = rotateButtonsCCW(layer.buttons, currentRows, currentCols);
+  } else if (rotation === '180') {
+    layer.buttons = rotateButtons180(layer.buttons, currentRows, currentCols);
+  }
+}
+
+/**
+ * Rotate button array 90° clockwise.
+ * Input: rows × cols, Output: cols × rows
+ */
+function rotateButtonsCW(buttons, rows, cols) {
+  const newRows = cols;
+  const newCols = rows;
+  const result = [];
+  
+  for (let r = 0; r < newRows; r++) {
+    const row = [];
+    for (let c = 0; c < newCols; c++) {
+      // CW: new(r,c) = old(rows-1-c, r)
+      const oldRow = rows - 1 - c;
+      const oldCol = r;
+      row.push(buttons[oldRow]?.[oldCol] ?? null);
+    }
+    result.push(row);
+  }
+  
+  return result;
+}
+
+/**
+ * Rotate button array 90° counter-clockwise.
+ * Input: rows × cols, Output: cols × rows
+ */
+function rotateButtonsCCW(buttons, rows, cols) {
+  const newRows = cols;
+  const newCols = rows;
+  const result = [];
+  
+  for (let r = 0; r < newRows; r++) {
+    const row = [];
+    for (let c = 0; c < newCols; c++) {
+      // CCW: new(r,c) = old(c, cols-1-r)
+      const oldRow = c;
+      const oldCol = cols - 1 - r;
+      row.push(buttons[oldRow]?.[oldCol] ?? null);
+    }
+    result.push(row);
+  }
+  
+  return result;
+}
+
+/**
+ * Rotate button array 180°.
+ * Input: rows × cols, Output: rows × cols (same dimensions)
+ */
+function rotateButtons180(buttons, rows, cols) {
+  const result = [];
+  
+  for (let r = 0; r < rows; r++) {
+    const row = [];
+    for (let c = 0; c < cols; c++) {
+      // 180: new(r,c) = old(rows-1-r, cols-1-c)
+      const oldRow = rows - 1 - r;
+      const oldCol = cols - 1 - c;
+      row.push(buttons[oldRow]?.[oldCol] ?? null);
+    }
+    result.push(row);
+  }
+  
+  return result;
 }
 
 // ─── Visual Keyboard ─────────────────────────────────────────────────
@@ -134,52 +265,6 @@ function setupKeyboard() {
   });
 }
 
-/**
- * Map a display (visual) grid position to the underlying data position.
- * This handles the rotation transform so the visual layout matches
- * the physical device orientation.
- *
- * Data layout: rows × cols (e.g., 3 rows × 2 cols for ch57x-3)
- * Display layout depends on orientation:
- *   normal:          rows × cols (same as data)
- *   upsidedown:      rows × cols (same dims, reversed order)
- *   clockwise:       cols × rows (swapped dims)
- *   counterclockwise: cols × rows (swapped dims)
- */
-function mapDisplayToData(displayRow, displayCol, model, orientation) {
-  const { rows, cols } = model;
-
-  let dataRow, dataCol;
-
-  switch (orientation) {
-    case 'upsidedown':
-      // Flip both axes: display (0,0) → data (rows-1, cols-1)
-      dataRow = rows - 1 - displayRow;
-      dataCol = cols - 1 - displayCol;
-      break;
-    case 'clockwise':
-      // Rotate 90° CW: display (dr, dc) → data (rows-1-dc, dr)
-      // Display is cols × rows
-      dataRow = rows - 1 - displayCol;
-      dataCol = displayRow;
-      break;
-    case 'counterclockwise':
-      // Rotate 90° CCW: display (dr, dc) → data (dc, cols-1-dr)
-      // Display is cols × rows
-      dataRow = displayCol;
-      dataCol = cols - 1 - displayRow;
-      break;
-    case 'normal':
-    default:
-      dataRow = displayRow;
-      dataCol = displayCol;
-      break;
-  }
-
-  const dataIdx = dataRow * cols + dataCol;
-  return { dataRow, dataCol, dataIdx };
-}
-
 function renderKeyboard() {
   const container = $('#keyboard-visual');
   const model = KEYBOARD_MODELS[state.currentModel];
@@ -191,24 +276,32 @@ function renderKeyboard() {
   const displayRows = isRotated ? model.cols : model.rows;
   const displayCols = isRotated ? model.rows : model.cols;
 
-  // Build a transformed grid by mapping display positions to data positions
-  const transformedButtons = [];
-  for (let dr = 0; dr < displayRows; dr++) {
-    const row = [];
-    for (let dc = 0; dc < displayCols; dc++) {
-      const { dataRow, dataCol, dataIdx } = mapDisplayToData(dr, dc, model, orientation);
-      const action = layer.buttons[dataRow]?.[dataCol];
-      row.push({ action, dataIdx });
-    }
-    transformedButtons.push(row);
-  }
-
+  // Data is already rotated in the config, so display it directly
   let html = '<div class="keyboard-grid" style="grid-template-columns: repeat(' + displayCols + ', 1fr);">';
 
   let displayIdx = 0;
   for (let dr = 0; dr < displayRows; dr++) {
     for (let dc = 0; dc < displayCols; dc++) {
-      const { action, dataIdx } = transformedButtons[dr][dc];
+      const action = layer.buttons[dr]?.[dc];
+      // Calculate the data index based on original model dimensions
+      // For rotated orientations, we need to map back to the original flat index
+      let dataIdx;
+      if (orientation === 'normal') {
+        dataIdx = dr * model.cols + dc;
+      } else if (orientation === 'upsidedown') {
+        dataIdx = (model.rows - 1 - dr) * model.cols + (model.cols - 1 - dc);
+      } else if (orientation === 'clockwise') {
+        // Display is cols × rows, map back to original rows × cols
+        const origRow = model.rows - 1 - dc;
+        const origCol = dr;
+        dataIdx = origRow * model.cols + origCol;
+      } else if (orientation === 'counterclockwise') {
+        // Display is cols × rows, map back to original rows × cols
+        const origRow = dc;
+        const origCol = model.cols - 1 - dr;
+        dataIdx = origRow * model.cols + origCol;
+      }
+      
       const isSelected = state.selectedKey?.type === 'button' && state.selectedKey?.index === dataIdx;
       const isAssigned = action != null;
       const label = action ? formatActionLabel(action) : '';
@@ -406,8 +499,8 @@ function openPicker() {
 
   if (key.type === 'button') {
     const model = KEYBOARD_MODELS[state.currentModel];
-    const row = Math.floor(key.index / model.cols);
-    const col = key.index % model.cols;
+    const orientation = state.orientation || 'normal';
+    const { row, col } = getDataPosition(key.index, model, orientation);
     currentAction = layer.buttons[row]?.[col];
     keyName = `Button ${row + 1},${col + 1}`;
   } else if (key.type === 'knob') {
@@ -467,11 +560,11 @@ function assignAndClose(actionStr) {
 
   const key = state.selectedKey;
   const layer = state.config.layers[0];
+  const orientation = state.orientation || 'normal';
 
   if (key.type === 'button') {
     const model = KEYBOARD_MODELS[state.currentModel];
-    const row = Math.floor(key.index / model.cols);
-    const col = key.index % model.cols;
+    const { row, col } = getDataPosition(key.index, model, orientation);
     layer.buttons[row][col] = actionStr;
   } else if (key.type === 'knob') {
     layer.knobs[key.index][key.knobAction] = actionStr;
@@ -489,11 +582,11 @@ function clearCurrentKey() {
 
   const key = state.selectedKey;
   const layer = state.config.layers[0];
+  const orientation = state.orientation || 'normal';
 
   if (key.type === 'button') {
     const model = KEYBOARD_MODELS[state.currentModel];
-    const row = Math.floor(key.index / model.cols);
-    const col = key.index % model.cols;
+    const { row, col } = getDataPosition(key.index, model, orientation);
     layer.buttons[row][col] = null;
   } else if (key.type === 'knob') {
     layer.knobs[key.index][key.knobAction] = null;
@@ -503,6 +596,56 @@ function clearCurrentKey() {
   updateKeyCountHint();
   autoSave();
   showToast('Action cleared', 'info');
+}
+
+/**
+ * Convert a data index (physical button position) to array position
+ * based on the current orientation.
+ */
+function getDataPosition(dataIdx, model, orientation) {
+  const { rows, cols } = model;
+  const isRotated = orientation === 'clockwise' || orientation === 'counterclockwise';
+  const arrayRows = isRotated ? cols : rows;
+  const arrayCols = isRotated ? rows : cols;
+  
+  // For rotated orientations, we need to map the original dataIdx
+  // to the position in the rotated array
+  if (orientation === 'normal') {
+    const row = Math.floor(dataIdx / cols);
+    const col = dataIdx % cols;
+    return { row, col };
+  } else if (orientation === 'upsidedown') {
+    // Array is still rows × cols, but data is flipped
+    const origRow = Math.floor(dataIdx / cols);
+    const origCol = dataIdx % cols;
+    const row = rows - 1 - origRow;
+    const col = cols - 1 - origCol;
+    return { row, col };
+  } else if (orientation === 'clockwise') {
+    // Array is cols × rows
+    // Original position: origRow = dataIdx / cols, origCol = dataIdx % cols
+    const origRow = Math.floor(dataIdx / cols);
+    const origCol = dataIdx % cols;
+    // After CW rotation: new(r,c) = old(rows-1-c, r)
+    // So old(origRow, origCol) is at new(origCol, rows-1-origRow)
+    const row = origCol;
+    const col = rows - 1 - origRow;
+    return { row, col };
+  } else if (orientation === 'counterclockwise') {
+    // Array is cols × rows
+    // After CCW rotation: new(r,c) = old(c, cols-1-r)
+    // So old(origRow, origCol) is at new(cols-1-origCol, origRow)
+    const origRow = Math.floor(dataIdx / cols);
+    const origCol = dataIdx % cols;
+    const row = cols - 1 - origCol;
+    const col = origRow;
+    return { row, col };
+  }
+  
+  // Fallback
+  const row = Math.floor(dataIdx / cols);
+  const col = dataIdx % cols;
+  return { row, col };
 }
 
 // ─── Import / Export ─────────────────────────────────────────────────

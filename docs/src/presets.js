@@ -6,6 +6,8 @@
  * description of what was configured and which apps benefit.
  */
 
+import { KEYBOARD_MODELS } from './config.js';
+
 export const PRESETS = {
   gamer: {
     name: 'Gamer',
@@ -1829,18 +1831,36 @@ export function getPresetConfig(presetId, modelId) {
 /**
  * Apply a preset to a config object.
  * Mutates the config's first layer with the preset's button/knob assignments.
+ * Handles orientation rotation if the config is in a rotated orientation.
  */
 export function applyPreset(presetId, modelId, config) {
   const presetConfig = getPresetConfig(presetId, modelId);
   if (!presetConfig) return false;
 
   const layer = config.layers[0];
+  const orientation = config.orientation || 'normal';
+
+  // Get the model dimensions
+  const model = KEYBOARD_MODELS[modelId];
+  if (!model) return false;
+
+  // Start with the preset buttons (always in normal orientation: rows × cols)
+  let buttons = presetConfig.buttons.map(row => [...row]);
+
+  // Rotate the buttons if the config is in a rotated orientation
+  if (orientation === 'clockwise') {
+    buttons = rotateButtonsCW(buttons, model.rows, model.cols);
+  } else if (orientation === 'counterclockwise') {
+    buttons = rotateButtonsCCW(buttons, model.rows, model.cols);
+  } else if (orientation === 'upsidedown') {
+    buttons = rotateButtons180(buttons, model.rows, model.cols);
+  }
 
   // Apply button assignments
-  for (let r = 0; r < presetConfig.buttons.length; r++) {
-    for (let c = 0; c < presetConfig.buttons[r].length; c++) {
+  for (let r = 0; r < buttons.length; r++) {
+    for (let c = 0; c < buttons[r].length; c++) {
       if (layer.buttons[r] && c < layer.buttons[r].length) {
-        layer.buttons[r][c] = presetConfig.buttons[r][c];
+        layer.buttons[r][c] = buttons[r][c];
       }
     }
   }
@@ -1855,6 +1875,54 @@ export function applyPreset(presetId, modelId, config) {
   }
 
   return true;
+}
+
+// ─── Button Rotation Helpers ─────────────────────────────────────────
+
+function rotateButtonsCW(buttons, rows, cols) {
+  const newRows = cols;
+  const newCols = rows;
+  const result = [];
+  for (let r = 0; r < newRows; r++) {
+    const row = [];
+    for (let c = 0; c < newCols; c++) {
+      const oldRow = rows - 1 - c;
+      const oldCol = r;
+      row.push(buttons[oldRow]?.[oldCol] ?? null);
+    }
+    result.push(row);
+  }
+  return result;
+}
+
+function rotateButtonsCCW(buttons, rows, cols) {
+  const newRows = cols;
+  const newCols = rows;
+  const result = [];
+  for (let r = 0; r < newRows; r++) {
+    const row = [];
+    for (let c = 0; c < newCols; c++) {
+      const oldRow = c;
+      const oldCol = cols - 1 - r;
+      row.push(buttons[oldRow]?.[oldCol] ?? null);
+    }
+    result.push(row);
+  }
+  return result;
+}
+
+function rotateButtons180(buttons, rows, cols) {
+  const result = [];
+  for (let r = 0; r < rows; r++) {
+    const row = [];
+    for (let c = 0; c < cols; c++) {
+      const oldRow = rows - 1 - r;
+      const oldCol = cols - 1 - c;
+      row.push(buttons[oldRow]?.[oldCol] ?? null);
+    }
+    result.push(row);
+  }
+  return result;
 }
 
 /**

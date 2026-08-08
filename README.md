@@ -13,6 +13,7 @@ Browser-based visual configuration designer for CH57x-based macro keyboards. Des
 - **Knob support** — assign CCW, press, and CW actions to rotary encoders
 - **17 built-in presets** — one-click configurations for common workflows (see below)
 - **Multi-slot storage** — save multiple keyboard configurations in named slots, auto-restores last used
+- **Orientation rotation** — rotate key bindings when changing device orientation (normal, upside down, clockwise, counter-clockwise)
 - **YAML export/import** — compatible with `ch57x-keyboard-tool` (Rust CLI)
 - **LED control** — interactive LED setup via the upload script
 - **No build step** — vanilla JavaScript, runs in any browser
@@ -111,6 +112,26 @@ The app supports saving multiple keyboard configurations in named slots:
 
 Each slot stores the model, configuration, and timestamp. Slot names are sanitized to lowercase alphanumeric with hyphens.
 
+### Orientation Rotation
+
+The app supports rotating key bindings when the physical device orientation changes. Use the **Orientation** dropdown in the toolbar to select:
+
+| Orientation | Description |
+|-------------|-------------|
+| **Normal** | Default upright orientation |
+| **Upside Down** | Rotated 180° |
+| **Clockwise** | Rotated 90° clockwise |
+| **Counter-Clockwise** | Rotated 90° counter-clockwise |
+
+When you change the orientation, the key bindings are physically rotated in the configuration data. This means:
+
+- The visual grid rotates to match the physical device orientation
+- Key assignments rotate with the grid, maintaining their relative positions
+- You can assign keys in any orientation, and the rotation is preserved
+- Switching back to Normal orientation restores the original layout
+
+**Example**: If you have a 3×2 grid with keys `q, e` in the first row and switch to Clockwise orientation, the grid becomes 2×3 and the keys rotate to maintain their physical positions on the device.
+
 ### Knobs
 
 For devices with rotary encoders, click CCW/Press/CW to assign each direction independently.
@@ -186,6 +207,8 @@ The `orientation` field controls how the button grid maps to the physical device
 | `upsidedown` | Rotated 180° |
 | `clockwise` | Rotated 90° clockwise |
 | `counterclockwise` | Rotated 90° counter-clockwise |
+
+**Note**: When you change the orientation in the UI, the key bindings are physically rotated in the configuration data. The button array dimensions change for clockwise/counter-clockwise orientations (e.g., a 3×2 grid becomes 2×3). This ensures the visual layout matches the physical device orientation while maintaining the correct key assignments.
 
 ## Upload Setup
 
