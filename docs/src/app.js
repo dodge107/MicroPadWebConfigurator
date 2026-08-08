@@ -99,6 +99,7 @@ function setupOrientation() {
   $('#orientation-select').addEventListener('change', (e) => {
     state.orientation = e.target.value;
     state.config.orientation = state.orientation;
+    renderKeyboard();
     autoSave();
     showToast(`Orientation: ${e.target.options[e.target.selectedIndex].text}`, 'info');
     logger.info('APP', `Orientation changed to: ${state.orientation}`);
@@ -126,28 +127,92 @@ function setupKeyboard() {
   });
 }
 
+/**
+ * Map a display (visual) grid position to the underlying data position.
+ * This handles the rotation transform so the visual layout matches
+ * the physical device orientation.
+ *
+ * Data layout: rows × cols (e.g., 3 rows × 2 cols for ch57x-3)
+ * Display layout depends on orientation:
+ *   normal:          rows × cols (same as data)
+ *   upsidedown:      rows × cols (same dims, reversed order)
+ *   clockwise:       cols × rows (swapped dims)
+ *   counterclockwise: cols × rows (swapped dims)
+ */
+function mapDisplayToData(displayRow, displayCol, model, orientation) {
+  const { rows, cols } = model;
+
+  let dataRow, dataCol;
+
+  switch (orientation) {
+    case 'upsidedown':
+      // Flip both axes: display (0,0) → data (rows-1, cols-1)
+      dataRow = rows - 1 - displayRow;
+      dataCol = cols - 1 - displayCol;
+      break;
+    case 'clockwise':
+      // Rotate 90° CW: display (dr, dc) → data (rows-1-dc, dr)
+      // Display is cols × rows
+      dataRow = rows - 1 - displayCol;
+      dataCol = displayRow;
+      break;
+    case 'counterclockwise':
+      // Rotate 90° CCW: display (dr, dc) → data (dc, cols-1-dr)
+      // Display is cols × rows
+      dataRow = displayCol;
+      dataCol = cols - 1 - displayRow;
+      break;
+    case 'normal':
+    default:
+      dataRow = displayRow;
+      dataCol = displayCol;
+      break;
+  }
+
+  const dataIdx = dataRow * cols + dataCol;
+  return { dataRow, dataCol, dataIdx };
+}
+
 function renderKeyboard() {
   const container = $('#keyboard-visual');
   const model = KEYBOARD_MODELS[state.currentModel];
   const layer = state.config.layers[0];
+  const orientation = state.orientation || 'normal';
 
-  let html = '<div class="keyboard-grid" style="grid-template-columns: repeat(' + model.cols + ', 1fr);">';
+  // Determine display dimensions based on orientation
+  const isRotated = orientation === 'clockwise' || orientation === 'counterclockwise';
+  const displayRows = isRotated ? model.cols : model.rows;
+  const displayCols = isRotated ? model.rows : model.cols;
 
-  let buttonIdx = 0;
-  for (let r = 0; r < model.rows; r++) {
-    for (let c = 0; c < model.cols; c++) {
-      const action = layer.buttons[r]?.[c];
-      const isSelected = state.selectedKey?.type === 'button' && state.selectedKey?.index === buttonIdx;
+  // Build a transformed grid by mapping display positions to data positions
+  const transformedButtons = [];
+  for (let dr = 0; dr < displayRows; dr++) {
+    const row = [];
+    for (let dc = 0; dc < displayCols; dc++) {
+      const { dataRow, dataCol, dataIdx } = mapDisplayToData(dr, dc, model, orientation);
+      const action = layer.buttons[dataRow]?.[dataCol];
+      row.push({ action, dataIdx });
+    }
+    transformedButtons.push(row);
+  }
+
+  let html = '<div class="keyboard-grid" style="grid-template-columns: repeat(' + displayCols + ', 1fr);">';
+
+  let displayIdx = 0;
+  for (let dr = 0; dr < displayRows; dr++) {
+    for (let dc = 0; dc < displayCols; dc++) {
+      const { action, dataIdx } = transformedButtons[dr][dc];
+      const isSelected = state.selectedKey?.type === 'button' && state.selectedKey?.index === dataIdx;
       const isAssigned = action != null;
       const label = action ? formatActionLabel(action) : '';
 
       html += `
         <button class="key-btn ${isSelected ? 'selected' : ''} ${isAssigned ? 'assigned' : ''}"
-                data-type="button" data-index="${buttonIdx}">
-          ${isAssigned ? `<span class="key-label">${label}</span>` : `<span class="key-index">${buttonIdx + 1}</span>`}
+                data-type="button" data-index="${dataIdx}">
+          ${isAssigned ? `<span class="key-label">${label}</span>` : `<span class="key-index">${dataIdx + 1}</span>`}
         </button>
       `;
-      buttonIdx++;
+      displayIdx++;
     }
   }
   html += '</div>';
