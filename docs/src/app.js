@@ -20,6 +20,7 @@ const state = {
   config: null,
   selectedKey: null, // { type: 'button'|'knob', index, knobAction? }
   currentSlot: 'default', // Current localStorage slot name
+  orientation: 'normal', // Device orientation: normal, upsidedown, clockwise, counterclockwise
 };
 
 // ─── Init ────────────────────────────────────────────────────────────
@@ -30,13 +31,16 @@ function init() {
     state.currentModel = saved.model;
     state.config = saved.config;
     state.currentSlot = saved.slotName || 'default';
+    state.orientation = saved.config.orientation || 'normal';
     $('#model-select').value = state.currentModel;
+    $('#orientation-select').value = state.orientation;
     logger.info('APP', `Restored configuration from browser storage slot: ${state.currentSlot}`);
   } else {
     state.config = createEmptyConfig(state.currentModel);
   }
 
   setupToolbar();
+  setupOrientation();
   setupKeyboard();
   setupPicker();
   setupImportExport();
@@ -53,6 +57,7 @@ function setupToolbar() {
   $('#model-select').addEventListener('change', (e) => {
     state.currentModel = e.target.value;
     state.config = createEmptyConfig(state.currentModel);
+    state.config.orientation = state.orientation;
     state.selectedKey = null;
 
     // Re-apply current preset if one is selected
@@ -87,6 +92,17 @@ function updateKeyCountHint() {
     if (knob.cw) assigned++;
   }
   $('#key-count-hint').textContent = `${assigned}/${total} keys assigned`;
+}
+
+// ─── Orientation ─────────────────────────────────────────────────────
+function setupOrientation() {
+  $('#orientation-select').addEventListener('change', (e) => {
+    state.orientation = e.target.value;
+    state.config.orientation = state.orientation;
+    autoSave();
+    showToast(`Orientation: ${e.target.options[e.target.selectedIndex].text}`, 'info');
+    logger.info('APP', `Orientation changed to: ${state.orientation}`);
+  });
 }
 
 // ─── Visual Keyboard ─────────────────────────────────────────────────
@@ -429,7 +445,9 @@ function setupImportExport() {
         const config = parseYAML(event.target.result);
         state.currentModel = config.model || state.currentModel;
         state.config = config;
+        state.orientation = config.orientation || 'normal';
         $('#model-select').value = state.currentModel;
+        $('#orientation-select').value = state.orientation;
         state.selectedKey = null;
         renderKeyboard();
         updateKeyCountHint();
